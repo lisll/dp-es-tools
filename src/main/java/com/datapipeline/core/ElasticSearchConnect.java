@@ -165,7 +165,7 @@ public class ElasticSearchConnect {
     return bulkByScrollResponse;
   }
 
-  
+
   public void upsertDocByPk(String indexName, String mapping, String id, String params)
       throws Exception {
     try {
