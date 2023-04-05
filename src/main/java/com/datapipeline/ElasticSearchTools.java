@@ -1,10 +1,16 @@
 package com.datapipeline;
 
+import static com.datapipeline.model.DataTaskDelayMonitorGraph.DP_TASK_DELAY_GRAPH_INDEX;
+import static com.datapipeline.model.DataTaskDelayMonitorGraph.DP_TASK_DELAY_GRAPH_MAPPING;
 import static com.datapipeline.model.DataTaskHistoricalStat.DP_TASK_HISTORICAL_MAPPING;
+import static com.datapipeline.model.DataTaskHistoricalStat.DP_TASK_PROCESS_INDEX;
 
 import com.datapipeline.core.ElasticSearchClient;
 import com.datapipeline.core.ElasticSearchConnect;
+import com.datapipeline.core.query.ElasticSearchQuery;
+import com.datapipeline.model.DataTaskDelayMonitorGraph;
 import com.datapipeline.model.DataTaskHistoricalStat;
+import com.datapipeline.model.DataTaskState;
 import com.datapipeline.utils.DpUtils;
 import com.datapipeline.utils.ObjectConvert;
 import com.datapipeline.utils.ParameterTool;
@@ -18,6 +24,7 @@ import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
 import org.apache.commons.lang3.StringUtils;
 import org.elasticsearch.action.bulk.BulkResponse;
+import org.elasticsearch.client.RestHighLevelClient;
 import org.elasticsearch.core.TimeValue;
 import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilder;
@@ -53,17 +60,29 @@ public class ElasticSearchTools {
       if (!connect.indexExists(ElasticSearchTools.indexName)) {
         int number_of_shards = Integer.parseInt(parameterTool.get("number_of_shards"));
         int number_of_replicas = Integer.parseInt(parameterTool.get("number_of_replicas"));
-        connect.createIndex(
-            ElasticSearchTools.indexName,
-            DP_TASK_HISTORICAL_MAPPING,
-            number_of_shards,
-            number_of_replicas);
+        // indexName.contains(DP_TASK_DELAY_GRAPH_INDEX
+        if (indexName.contains(DP_TASK_PROCESS_INDEX)) {
+          connect.createIndex(
+              ElasticSearchTools.indexName,
+              DP_TASK_HISTORICAL_MAPPING,
+              number_of_shards,
+              number_of_replicas);
+        } else if (indexName.contains(DP_TASK_DELAY_GRAPH_INDEX)) {
+          connect.createIndex(
+              ElasticSearchTools.indexName,
+              DP_TASK_DELAY_GRAPH_MAPPING,
+              number_of_shards,
+              number_of_replicas);
+        }
       }
       multi(connect, parameterTool);
     } else if (Objects.equals(executeMode, "delete")) {
       deleteByQuery(connect, parameterTool);
     } else {
       System.out.println("当前模式不支持:" + executeMode + " ,请重新配置模式");
+      RestHighLevelClient restHighLevelClient = connect.getRestHighLevelClient();
+      ElasticSearchQuery query = new ElasticSearchQuery(restHighLevelClient);
+      query.getTaskDelayMonitorGraph(indexName);
     }
   }
 
@@ -110,7 +129,7 @@ public class ElasticSearchTools {
       long start = System.currentTimeMillis();
       int j = 0;
       while (j < batchSize) {
-        DataTaskHistoricalStat dataTaskHistoricalStat = generateData(recentlyMonth, rangeIds);
+        DataTaskState dataTaskHistoricalStat = generateData(recentlyMonth, rangeIds);
         Map<String, Object> source = ObjectConvert.beanToMap(dataTaskHistoricalStat);
         sources.add(source);
         j++;
@@ -130,7 +149,21 @@ public class ElasticSearchTools {
         "当前批次插入完成,任务即将停止,当前线程为:" + Thread.currentThread().getName() + ",当前系统时间: " + new Date());
   }
 
-  private static DataTaskHistoricalStat generateData(int recentlyMonth, int rangeIds) {
+  private static DataTaskState generateData(int recentlyMonth, int rangeIds) {
+    DataTaskState taskState = null;
+    if (indexName.contains(DP_TASK_DELAY_GRAPH_INDEX)) {
+      taskState = generateTaskDelayMonitorGraph(recentlyMonth, rangeIds);
+    } else if (indexName.contains(DP_TASK_PROCESS_INDEX)) {
+      taskState = generateTaskHistoricalStat(recentlyMonth, rangeIds);
+    }
+    if (taskState == null) {
+      throw new RuntimeException("current indexName is error please check it ");
+    }
+    return taskState;
+  }
+
+  private static DataTaskHistoricalStat generateTaskHistoricalStat(
+      int recentlyMonth, int rangeIds) {
     DataTaskHistoricalStat dataTaskHistoricalStat = new DataTaskHistoricalStat();
     Random rd = new Random();
     dataTaskHistoricalStat.setTaskId(rd.nextInt(rangeIds) + 1);
@@ -142,12 +175,23 @@ public class ElasticSearchTools {
     dataTaskHistoricalStat.setCountRate(0.0);
     dataTaskHistoricalStat.setBytesSum(rd.nextInt(200000) + 1L);
     dataTaskHistoricalStat.setCountSum(rd.nextInt(20000) + 1L);
-    // TODO other for delete
-    // 获取当前系统时间 - recentlyMonth个月前之间的时间戳
     long priorTime = DpUtils.getPriorTime(recentlyMonth);
     long randomTime = ThreadLocalRandom.current().nextLong(priorTime, new Date().getTime());
     dataTaskHistoricalStat.setCreatedAt(randomTime);
     return dataTaskHistoricalStat;
+  }
+
+  private static DataTaskDelayMonitorGraph generateTaskDelayMonitorGraph(
+      int recentlyMonth, int rangeIds) {
+    DataTaskDelayMonitorGraph dataTaskDelayMonitorGraph = new DataTaskDelayMonitorGraph();
+    Random rd = new Random();
+    dataTaskDelayMonitorGraph.setTaskId(rd.nextInt(rangeIds) + 1);
+    dataTaskDelayMonitorGraph.setMappingId(rd.nextInt(5) + 1);
+    dataTaskDelayMonitorGraph.setBatchDelayTime(Long.parseLong(rd.nextInt(1000000) + ""));
+    long priorTime = DpUtils.getPriorTime(recentlyMonth);
+    long randomTime = ThreadLocalRandom.current().nextLong(priorTime, new Date().getTime());
+    dataTaskDelayMonitorGraph.setCreatedAt(randomTime);
+    return dataTaskDelayMonitorGraph;
   }
 
   private static void deleteByQuery(ElasticSearchConnect connect, ParameterTool parameterTool)

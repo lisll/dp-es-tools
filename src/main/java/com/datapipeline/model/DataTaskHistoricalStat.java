@@ -4,7 +4,9 @@ import java.io.Serializable;
 import java.util.Objects;
 
 // 民生生产环境mapping结构 一共10个字段
-public class DataTaskHistoricalStat implements Serializable {
+public class DataTaskHistoricalStat extends DataTaskState {
+
+  public static final String DP_TASK_PROCESS_INDEX = "dp-task-historical-stat";
 
   private Integer taskId;
 

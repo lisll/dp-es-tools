@@ -82,6 +82,10 @@ public class ElasticSearchConnect {
     Thread.currentThread().setContextClassLoader(cacheContextProvider);
   }
 
+  public RestHighLevelClient getRestHighLevelClient() {
+    return restHighLevelClient;
+  }
+
   public synchronized void createIndex(
       String indexName, String mapping, Integer numberOfShards, Integer numberOfReplicas) throws Exception {
     Settings settings =
