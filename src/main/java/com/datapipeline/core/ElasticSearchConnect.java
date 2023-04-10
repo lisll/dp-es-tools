@@ -104,6 +104,11 @@ public class ElasticSearchConnect {
   }
 
   // 批量插入 (主要用于造一些测试数据)
+  /**
+   *注意:
+   * 如果原先的 索引mapping文件中没有某个字段，比如字段A，但是传入的content中，有这个字段A，那么最终插入的时候，mapping也会被改为和content中一致的结构
+   * 如果原先的mapping结构中有10个字段，但是 content参数中，只构建了8个字段，那么另外两个字段的值将为置为默认值 （比如String类型的数据，会被置为null)
+   */
   public BulkResponse bulkSaveDoc(String index, List<Map<String, Object>> content)
       throws IOException {
     BulkRequest bulkRequest = new BulkRequest();
@@ -120,6 +125,29 @@ public class ElasticSearchConnect {
     bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
     BulkResponse bulk = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
     return bulk;
+  }
+
+  /**
+   *  1,首次更新的时候，如果params中没有某个字段，但是mapping中有这个字段，那么这个字段将被置为默认值 （即首次更新时，ES中索引结构和 mapping中定义的结构保持一致。
+   *  2,首次更新的时候，如果params比mapping中多了字段，那么这些字段将会被自动创建，并且以后每次更新也不会消失（即如果再次更新时，params中缺了某些字段，那么这些字段也会被赋予默认值）
+   */
+  public void upsertDocByPk(String indexName, String mapping, String id, String params)
+      throws Exception {
+    try {
+      UpdateRequest updateRequest = new UpdateRequest();
+      updateRequest.index(indexName);
+      updateRequest.id(id);
+      updateRequest.docAsUpsert(true);
+      updateRequest.doc(params, XContentType.JSON);
+      restHighLevelClient.update(updateRequest, RequestOptions.DEFAULT);
+    } catch (ElasticsearchStatusException e) {
+      if (e.status() == RestStatus.NOT_FOUND) {
+        createIndex(indexName, mapping, null, null);
+        upsertDocByPk(indexName, mapping, id, params);
+      } else {
+        throw e;
+      }
+    }
   }
 
   public boolean indexExists(String indexName) throws IOException {
@@ -170,24 +198,7 @@ public class ElasticSearchConnect {
   }
 
 
-  public void upsertDocByPk(String indexName, String mapping, String id, String params)
-      throws Exception {
-    try {
-      UpdateRequest updateRequest = new UpdateRequest();
-      updateRequest.index(indexName);
-      updateRequest.id(id);
-      updateRequest.docAsUpsert(true);
-      updateRequest.doc(params, XContentType.JSON);
-      restHighLevelClient.update(updateRequest, RequestOptions.DEFAULT);
-    } catch (ElasticsearchStatusException e) {
-      if (e.status() == RestStatus.NOT_FOUND) {
-        createIndex(indexName, mapping, null, null);
-        upsertDocByPk(indexName, mapping, id, params);
-      } else {
-        throw e;
-      }
-    }
-  }
+
 
   public void closeResource() throws IOException {
     if (restHighLevelClient != null) {

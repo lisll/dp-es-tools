@@ -1,4 +1,4 @@
-package com.datapipeline.model;
+package com.datapipeline.mapping;
 
 
 public class DataTaskDelayMonitorGraph extends DataTaskState {

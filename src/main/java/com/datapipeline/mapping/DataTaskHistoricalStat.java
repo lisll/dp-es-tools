@@ -1,12 +1,12 @@
-package com.datapipeline.model;
+package com.datapipeline.mapping;
 
-import java.io.Serializable;
 import java.util.Objects;
 
 // 民生生产环境mapping结构 一共10个字段
 public class DataTaskHistoricalStat extends DataTaskState {
 
   public static final String DP_TASK_PROCESS_INDEX = "dp-task-historical-stat";
+  private static final long serialVersionUID = -8014492655875926600L;
 
   private Integer taskId;
 

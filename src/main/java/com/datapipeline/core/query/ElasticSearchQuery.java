@@ -2,7 +2,7 @@ package com.datapipeline.core.query;
 
 import static java.util.Collections.emptyMap;
 
-import com.datapipeline.model.DataTaskDelayMonitorGraph;
+import com.datapipeline.mapping.DataTaskDelayMonitorGraph;
 import com.datapipeline.utils.DateUtils;
 import java.io.IOException;
 import java.time.LocalDateTime;

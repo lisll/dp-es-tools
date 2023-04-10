@@ -1,16 +1,19 @@
 package com.datapipeline;
 
-import static com.datapipeline.model.DataTaskDelayMonitorGraph.DP_TASK_DELAY_GRAPH_INDEX;
-import static com.datapipeline.model.DataTaskDelayMonitorGraph.DP_TASK_DELAY_GRAPH_MAPPING;
-import static com.datapipeline.model.DataTaskHistoricalStat.DP_TASK_HISTORICAL_MAPPING;
-import static com.datapipeline.model.DataTaskHistoricalStat.DP_TASK_PROCESS_INDEX;
+import static com.datapipeline.mapping.DataTaskDelayMonitorGraph.DP_TASK_DELAY_GRAPH_INDEX;
+import static com.datapipeline.mapping.DataTaskDelayMonitorGraph.DP_TASK_DELAY_GRAPH_MAPPING;
+import static com.datapipeline.mapping.DataTaskHistoricalStat.DP_TASK_HISTORICAL_MAPPING;
+import static com.datapipeline.mapping.DataTaskHistoricalStat.DP_TASK_PROCESS_INDEX;
+import static com.datapipeline.mapping.DataTaskStatisticsInfo.DP_HISTORICAL_MONITOR_STAT_MAPPING;
+import static com.datapipeline.mapping.DataTaskStatisticsInfo.DP_STATISTICS_INDEX;
 
 import com.datapipeline.core.ElasticSearchClient;
 import com.datapipeline.core.ElasticSearchConnect;
 import com.datapipeline.core.query.ElasticSearchQuery;
-import com.datapipeline.model.DataTaskDelayMonitorGraph;
-import com.datapipeline.model.DataTaskHistoricalStat;
-import com.datapipeline.model.DataTaskState;
+import com.datapipeline.mapping.DataTaskDelayMonitorGraph;
+import com.datapipeline.mapping.DataTaskHistoricalStat;
+import com.datapipeline.mapping.DataTaskState;
+import com.datapipeline.mapping.DataTaskStatisticsInfo;
 import com.datapipeline.utils.DpUtils;
 import com.datapipeline.utils.ObjectConvert;
 import com.datapipeline.utils.ParameterTool;
@@ -73,6 +76,12 @@ public class ElasticSearchTools {
               DP_TASK_DELAY_GRAPH_MAPPING,
               number_of_shards,
               number_of_replicas);
+        } else if (indexName.contains(DP_STATISTICS_INDEX)) {
+          connect.createIndex(
+              ElasticSearchTools.indexName,
+              DP_HISTORICAL_MONITOR_STAT_MAPPING,
+              number_of_shards,
+              number_of_replicas);
         }
       }
       multi(connect, parameterTool);
@@ -99,7 +108,7 @@ public class ElasticSearchTools {
           new Thread(
               () -> {
                 try {
-                  batchInsert(connect, mockBase, batchSize, recentlyMonth, rangeIds);
+                  batchBulkSaveDoc(connect, mockBase, batchSize, recentlyMonth, rangeIds);
                 } catch (Exception e) {
                   e.printStackTrace();
                 }
@@ -114,7 +123,7 @@ public class ElasticSearchTools {
     connect.closeResource();
   }
 
-  private static void batchInsert(
+  private static void batchBulkSaveDoc(
       ElasticSearchConnect connect, int mockBase, int batchSize, int recentlyMonth, int rangeIds)
       throws Exception {
     // 单位(万条)
@@ -149,12 +158,22 @@ public class ElasticSearchTools {
         "当前批次插入完成,任务即将停止,当前线程为:" + Thread.currentThread().getName() + ",当前系统时间: " + new Date());
   }
 
+  private static void batchUpsertDocByPk(
+      ElasticSearchConnect connect, int mockBase, int batchSize, int recentlyMonth, int rangeIds)
+      throws Exception {
+    DataTaskState dataTaskState = generateData(recentlyMonth, rangeIds);
+    String param = ObjectConvert.getJsonString(dataTaskState);
+    connect.upsertDocByPk(indexName, DP_HISTORICAL_MONITOR_STAT_MAPPING, "3", param);
+  }
+
   private static DataTaskState generateData(int recentlyMonth, int rangeIds) {
     DataTaskState taskState = null;
     if (indexName.contains(DP_TASK_DELAY_GRAPH_INDEX)) {
       taskState = generateTaskDelayMonitorGraph(recentlyMonth, rangeIds);
     } else if (indexName.contains(DP_TASK_PROCESS_INDEX)) {
       taskState = generateTaskHistoricalStat(recentlyMonth, rangeIds);
+    } else if (indexName.contains(DP_STATISTICS_INDEX)) {
+      taskState = generateTaskStatisticsInfo(recentlyMonth, rangeIds);
     }
     if (taskState == null) {
       throw new RuntimeException("current indexName is error please check it ");
@@ -192,6 +211,26 @@ public class ElasticSearchTools {
     long randomTime = ThreadLocalRandom.current().nextLong(priorTime, new Date().getTime());
     dataTaskDelayMonitorGraph.setCreatedAt(randomTime);
     return dataTaskDelayMonitorGraph;
+  }
+
+  private static DataTaskStatisticsInfo generateTaskStatisticsInfo(
+      int recentlyMonth, int rangeIds) {
+    Random rd = new Random();
+    DataTaskStatisticsInfo dataTaskStatisticsInfo = new DataTaskStatisticsInfo();
+    dataTaskStatisticsInfo.setTaskId(rd.nextInt(rangeIds) + 1);
+    dataTaskStatisticsInfo.setMappingId(rd.nextInt(2000) + 1);
+    dataTaskStatisticsInfo.setFullDone(false);
+    dataTaskStatisticsInfo.setLastDayMaxDelayTime("2023-04-10_-1");
+    dataTaskStatisticsInfo.setProcessedRecords(888);
+    dataTaskStatisticsInfo.setRemainingTime(100);
+    dataTaskStatisticsInfo.setTodayMaxDelayTime("2023-04-10_0");
+    dataTaskStatisticsInfo.setTotalRecords(20);
+    dataTaskStatisticsInfo.setUpdateAt("1888");
+    dataTaskStatisticsInfo.setTotalProcessedRecords(999);
+    long priorTime = DpUtils.getPriorTime(recentlyMonth);
+    long randomTime = ThreadLocalRandom.current().nextLong(priorTime, new Date().getTime());
+    dataTaskStatisticsInfo.setCreatedAt(randomTime);
+    return dataTaskStatisticsInfo;
   }
 
   private static void deleteByQuery(ElasticSearchConnect connect, ParameterTool parameterTool)
