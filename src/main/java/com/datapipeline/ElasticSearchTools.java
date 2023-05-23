@@ -6,6 +6,8 @@ import static com.datapipeline.mapping.DataTaskHistoricalStat.DP_TASK_HISTORICAL
 import static com.datapipeline.mapping.DataTaskHistoricalStat.DP_TASK_PROCESS_INDEX;
 import static com.datapipeline.mapping.DataTaskStatisticsInfo.DP_HISTORICAL_MONITOR_STAT_MAPPING;
 import static com.datapipeline.mapping.DataTaskStatisticsInfo.DP_STATISTICS_INDEX;
+import static com.datapipeline.mapping.ErrorQueueRecord.DP_ERROR_QUEUE_RECORD_INDEX;
+import static com.datapipeline.mapping.ErrorQueueRecord.ERROR_QUEUE_RECORD_INDEX;
 
 import com.datapipeline.core.ElasticSearchClient;
 import com.datapipeline.core.ElasticSearchConnect;
@@ -14,6 +16,9 @@ import com.datapipeline.mapping.DataTaskDelayMonitorGraph;
 import com.datapipeline.mapping.DataTaskHistoricalStat;
 import com.datapipeline.mapping.DataTaskState;
 import com.datapipeline.mapping.DataTaskStatisticsInfo;
+import com.datapipeline.mapping.ErrorQueueRecord;
+import com.datapipeline.mapping.ErrorQueueRecordState;
+import com.datapipeline.mapping.ErrorQueueType;
 import com.datapipeline.utils.DpUtils;
 import com.datapipeline.utils.ObjectConvert;
 import com.datapipeline.utils.ParameterTool;
@@ -82,6 +87,12 @@ public class ElasticSearchTools {
               DP_HISTORICAL_MONITOR_STAT_MAPPING,
               number_of_shards,
               number_of_replicas);
+        }else if (indexName.contains(ERROR_QUEUE_RECORD_INDEX)){
+          connect.createIndex(
+              ElasticSearchTools.indexName,
+              DP_ERROR_QUEUE_RECORD_INDEX,
+              number_of_shards,
+              number_of_replicas);
         }
       }
       multi(connect, parameterTool);
@@ -126,8 +137,11 @@ public class ElasticSearchTools {
   private static void batchBulkSaveDoc(
       ElasticSearchConnect connect, int mockBase, int batchSize, int recentlyMonth, int rangeIds)
       throws Exception {
+//    DataTaskStatisticsInfo dataTaskStatisticsInfo = generateTaskStatisticsInfo(recentlyMonth,
+//        rangeIds);
+//    connect.upsertDocByPk(indexName,DP_HISTORICAL_MONITOR_STAT_MAPPING,"2",ObjectConvert.getJsonString(dataTaskStatisticsInfo));
     // 单位(万条)
-    int mockSize = mockBase * 10000;
+    int mockSize = mockBase * 100;
     int actionCount = mockSize / batchSize;
     int i = 1;
     System.out.printf("总数据量 = %s , 批数据量 = %s， 执行次数 = %s%n", mockSize, batchSize, actionCount);
@@ -174,6 +188,8 @@ public class ElasticSearchTools {
       taskState = generateTaskHistoricalStat(recentlyMonth, rangeIds);
     } else if (indexName.contains(DP_STATISTICS_INDEX)) {
       taskState = generateTaskStatisticsInfo(recentlyMonth, rangeIds);
+    } else if (indexName.contains(ERROR_QUEUE_RECORD_INDEX)){
+      taskState = generateErrorQueueRecord(recentlyMonth,rangeIds);
     }
     if (taskState == null) {
       throw new RuntimeException("current indexName is error please check it ");
@@ -219,18 +235,42 @@ public class ElasticSearchTools {
     DataTaskStatisticsInfo dataTaskStatisticsInfo = new DataTaskStatisticsInfo();
     dataTaskStatisticsInfo.setTaskId(rd.nextInt(rangeIds) + 1);
     dataTaskStatisticsInfo.setMappingId(rd.nextInt(2000) + 1);
-    dataTaskStatisticsInfo.setFullDone(false);
-    dataTaskStatisticsInfo.setLastDayMaxDelayTime("2023-04-10_-1");
     dataTaskStatisticsInfo.setProcessedRecords(888);
-    dataTaskStatisticsInfo.setRemainingTime(100);
-    dataTaskStatisticsInfo.setTodayMaxDelayTime("2023-04-10_0");
-    dataTaskStatisticsInfo.setTotalRecords(20);
-    dataTaskStatisticsInfo.setUpdateAt("1888");
     dataTaskStatisticsInfo.setTotalProcessedRecords(999);
+    dataTaskStatisticsInfo.setTotalRecords(20);
+    dataTaskStatisticsInfo.setRemainingTime(100);
+    dataTaskStatisticsInfo.setFullDone(false);
+//    dataTaskStatisticsInfo.setLastDayMaxDelayTime("2023-04-10_-1");
+//    dataTaskStatisticsInfo.setTodayMaxDelayTime("2023-04-10_0");
+    dataTaskStatisticsInfo.setUpdateAt("2023-04-10");
     long priorTime = DpUtils.getPriorTime(recentlyMonth);
     long randomTime = ThreadLocalRandom.current().nextLong(priorTime, new Date().getTime());
     dataTaskStatisticsInfo.setCreatedAt(randomTime);
     return dataTaskStatisticsInfo;
+  }
+
+  private static ErrorQueueRecord generateErrorQueueRecord(
+      int recentlyMonth, int rangeIds) {
+    Random rd = new Random();
+    ErrorQueueRecord errorQueueRecord = new ErrorQueueRecord();
+//    errorQueueRecord.setTaskId(rd.nextInt(rangeIds) + 1);
+    errorQueueRecord.setTaskId(1);
+    errorQueueRecord.setErrorRecordJson("RecordJson");
+    errorQueueRecord.setErrorFieldName("ErrorFieldName");
+    errorQueueRecord.setActionHandleUuid("ActionHandleUuid");
+    StringBuilder stringBuilder = new StringBuilder();
+    for(int i =0;i<227191;i++){
+      stringBuilder.append("hello"+i);
+    }
+    errorQueueRecord.setErrorRecordJson(stringBuilder.toString());
+    errorQueueRecord.setSrcEntityId(1);
+    errorQueueRecord.setSinkEntityId(10);
+    errorQueueRecord.setErrorType(ErrorQueueType.UNKNOWN);
+    errorQueueRecord.setState(ErrorQueueRecordState.UNRESOLVED);
+    long priorTime = DpUtils.getPriorTime(recentlyMonth);
+    long randomTime = ThreadLocalRandom.current().nextLong(priorTime, new Date().getTime());
+    errorQueueRecord.setCreatedAt(randomTime);
+    return errorQueueRecord;
   }
 
   private static void deleteByQuery(ElasticSearchConnect connect, ParameterTool parameterTool)
