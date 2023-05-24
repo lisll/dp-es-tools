@@ -87,7 +87,7 @@ public class ElasticSearchTools {
               DP_HISTORICAL_MONITOR_STAT_MAPPING,
               number_of_shards,
               number_of_replicas);
-        }else if (indexName.contains(ERROR_QUEUE_RECORD_INDEX)){
+        } else if (indexName.contains(ERROR_QUEUE_RECORD_INDEX)) {
           connect.createIndex(
               ElasticSearchTools.indexName,
               DP_ERROR_QUEUE_RECORD_INDEX,
@@ -137,9 +137,10 @@ public class ElasticSearchTools {
   private static void batchBulkSaveDoc(
       ElasticSearchConnect connect, int mockBase, int batchSize, int recentlyMonth, int rangeIds)
       throws Exception {
-//    DataTaskStatisticsInfo dataTaskStatisticsInfo = generateTaskStatisticsInfo(recentlyMonth,
-//        rangeIds);
-//    connect.upsertDocByPk(indexName,DP_HISTORICAL_MONITOR_STAT_MAPPING,"2",ObjectConvert.getJsonString(dataTaskStatisticsInfo));
+    //    DataTaskStatisticsInfo dataTaskStatisticsInfo = generateTaskStatisticsInfo(recentlyMonth,
+    //        rangeIds);
+    //
+    // connect.upsertDocByPk(indexName,DP_HISTORICAL_MONITOR_STAT_MAPPING,"2",ObjectConvert.getJsonString(dataTaskStatisticsInfo));
     // 单位(万条)
     int mockSize = mockBase * 100;
     int actionCount = mockSize / batchSize;
@@ -188,8 +189,8 @@ public class ElasticSearchTools {
       taskState = generateTaskHistoricalStat(recentlyMonth, rangeIds);
     } else if (indexName.contains(DP_STATISTICS_INDEX)) {
       taskState = generateTaskStatisticsInfo(recentlyMonth, rangeIds);
-    } else if (indexName.contains(ERROR_QUEUE_RECORD_INDEX)){
-      taskState = generateErrorQueueRecord(recentlyMonth,rangeIds);
+    } else if (indexName.contains(ERROR_QUEUE_RECORD_INDEX)) {
+      taskState = generateErrorQueueRecord(recentlyMonth, rangeIds);
     }
     if (taskState == null) {
       throw new RuntimeException("current indexName is error please check it ");
@@ -240,8 +241,8 @@ public class ElasticSearchTools {
     dataTaskStatisticsInfo.setTotalRecords(20);
     dataTaskStatisticsInfo.setRemainingTime(100);
     dataTaskStatisticsInfo.setFullDone(false);
-//    dataTaskStatisticsInfo.setLastDayMaxDelayTime("2023-04-10_-1");
-//    dataTaskStatisticsInfo.setTodayMaxDelayTime("2023-04-10_0");
+    //    dataTaskStatisticsInfo.setLastDayMaxDelayTime("2023-04-10_-1");
+    //    dataTaskStatisticsInfo.setTodayMaxDelayTime("2023-04-10_0");
     dataTaskStatisticsInfo.setUpdateAt("2023-04-10");
     long priorTime = DpUtils.getPriorTime(recentlyMonth);
     long randomTime = ThreadLocalRandom.current().nextLong(priorTime, new Date().getTime());
@@ -249,24 +250,199 @@ public class ElasticSearchTools {
     return dataTaskStatisticsInfo;
   }
 
-  private static ErrorQueueRecord generateErrorQueueRecord(
-      int recentlyMonth, int rangeIds) {
+  private static ErrorQueueRecord generateErrorQueueRecord(int recentlyMonth, int rangeIds) {
     Random rd = new Random();
     ErrorQueueRecord errorQueueRecord = new ErrorQueueRecord();
-//    errorQueueRecord.setTaskId(rd.nextInt(rangeIds) + 1);
-    errorQueueRecord.setTaskId(1);
+    errorQueueRecord.setTaskId(rd.nextInt(rangeIds) + 1);
     errorQueueRecord.setErrorRecordJson("RecordJson");
     errorQueueRecord.setErrorFieldName("ErrorFieldName");
     errorQueueRecord.setActionHandleUuid("ActionHandleUuid");
     StringBuilder stringBuilder = new StringBuilder();
-    for(int i =0;i<227191;i++){
-      stringBuilder.append("hello"+i);
+    for (int i = 0; i < 227191; i++) {
+      stringBuilder.append("hello" + i);
     }
     errorQueueRecord.setErrorRecordJson(stringBuilder.toString());
     errorQueueRecord.setSrcEntityId(1);
     errorQueueRecord.setSinkEntityId(10);
-    errorQueueRecord.setErrorType(ErrorQueueType.UNKNOWN);
+    int temp = rd.nextInt(10);
+    if (temp == 0 || temp == 1) {
+      errorQueueRecord.setErrorType(ErrorQueueType.NON_NULL_VIOLATION);
+    } else if (temp == 2 || temp == 3) {
+      errorQueueRecord.setErrorType(ErrorQueueType.DATA_OVERFLOW);
+    } else {
+      errorQueueRecord.setErrorType(ErrorQueueType.UNKNOWN);
+    }
     errorQueueRecord.setState(ErrorQueueRecordState.UNRESOLVED);
+    errorQueueRecord.setValue(
+        "{\n"
+            + "  \"schema\": {\n"
+            + "    \"type\": \"struct\",\n"
+            + "    \"fields\": [\n"
+            + "      {\n"
+            + "        \"type\": \"struct\",\n"
+            + "        \"fields\": [\n"
+            + "          {\n"
+            + "            \"type\": \"int32\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"id\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"string\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"first_name\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"string\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"last_name\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"string\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"email\"\n"
+            + "          }\n"
+            + "        ],\n"
+            + "        \"optional\": true,\n"
+            + "        \"name\": \"PostgreSQL_server.inventory.customers.Value\",\n"
+            + "        \"field\": \"before\"\n"
+            + "      },\n"
+            + "      {\n"
+            + "        \"type\": \"struct\",\n"
+            + "        \"fields\": [\n"
+            + "          {\n"
+            + "            \"type\": \"int32\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"id\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"string\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"first_name\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"string\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"last_name\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"string\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"email\"\n"
+            + "          }\n"
+            + "        ],\n"
+            + "        \"optional\": true,\n"
+            + "        \"name\": \"PostgreSQL_server.inventory.customers.Value\",\n"
+            + "        \"field\": \"after\"\n"
+            + "      },\n"
+            + "      {\n"
+            + "        \"type\": \"struct\",\n"
+            + "        \"fields\": [\n"
+            + "          {\n"
+            + "            \"type\": \"string\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"version\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"string\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"connector\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"string\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"name\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"int64\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"ts_ms\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"boolean\",\n"
+            + "            \"optional\": true,\n"
+            + "            \"default\": false,\n"
+            + "            \"field\": \"snapshot\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"string\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"db\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"string\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"schema\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"string\",\n"
+            + "            \"optional\": false,\n"
+            + "            \"field\": \"table\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"int64\",\n"
+            + "            \"optional\": true,\n"
+            + "            \"field\": \"txId\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"int64\",\n"
+            + "            \"optional\": true,\n"
+            + "            \"field\": \"lsn\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"boolean\",\n"
+            + "            \"optional\": true,\n"
+            + "            \"field\": \"eqr\"\n"
+            + "          },\n"
+            + "          {\n"
+            + "            \"type\": \"int64\",\n"
+            + "            \"optional\": true,\n"
+            + "            \"field\": \"xmin\"\n"
+            + "          }\n"
+            + "        ],\n"
+            + "        \"optional\": false,\n"
+            + "        \"name\": \"io.debezium.connector.postgresql.Source\",\n"
+            + "        \"field\": \"source\"\n"
+            + "      },\n"
+            + "      {\n"
+            + "        \"type\": \"string\",\n"
+            + "        \"optional\": false,\n"
+            + "        \"field\": \"op\"\n"
+            + "      },\n"
+            + "      {\n"
+            + "        \"type\": \"int64\",\n"
+            + "        \"optional\": true,\n"
+            + "        \"field\": \"ts_ms\"\n"
+            + "      }\n"
+            + "    ],\n"
+            + "    \"optional\": false,\n"
+            + "    \"name\": \"PostgreSQL_server.inventory.customers.Envelope\"\n"
+            + "  },\n"
+            + "  \"payload\": {\n"
+            + "    \"before\": null,\n"
+            + "    \"after\": {\n"
+            + "      \"id\": 1,\n"
+            + "      \"first_name\": \"Anne\",\n"
+            + "      \"last_name\": \"Kretchmar\",\n"
+            + "      \"email\": \"annek@noanswer.org\"\n"
+            + "    },\n"
+            + "    \"source\": {\n"
+            + "      \"version\": \"1.2.5.Final\",\n"
+            + "      \"connector\": \"postgresql\",\n"
+            + "      \"name\": \"PostgreSQL_server\",\n"
+            + "      \"ts_ms\": 1559033904863,\n"
+            + "      \"snapshot\": true,\n"
+            + "      \"db\": \"postgres\",\n"
+            + "      \"schema\": \"public\",\n"
+            + "      \"table\": \"customers\",\n"
+            + "      \"txId\": 555,\n"
+            + "      \"lsn\": 24023128,\n"
+            + "      \"xmin\": null\n"
+            + "    },\n"
+            + "    \"op\": \"c\",\n"
+            + "    \"ts_ms\": 1559033904863\n"
+            + "  }\n"
+            + "}");
+    errorQueueRecord.setTopicName("dblab04");
     long priorTime = DpUtils.getPriorTime(recentlyMonth);
     long randomTime = ThreadLocalRandom.current().nextLong(priorTime, new Date().getTime());
     errorQueueRecord.setCreatedAt(randomTime);

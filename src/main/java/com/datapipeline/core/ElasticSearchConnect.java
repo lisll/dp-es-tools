@@ -18,6 +18,7 @@ import org.elasticsearch.action.get.GetRequest;
 import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest;
+import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
 import org.elasticsearch.action.update.UpdateRequest;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
@@ -122,7 +123,7 @@ public class ElasticSearchConnect {
     }
     System.out.println("es同步数据数量: " + bulkRequest.numberOfActions());
     // 设置索引刷新规则
-    bulkRequest.setRefreshPolicy(WriteRequest.RefreshPolicy.IMMEDIATE);
+    bulkRequest.setRefreshPolicy(RefreshPolicy.WAIT_UNTIL);
     BulkResponse bulk = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
     return bulk;
   }
