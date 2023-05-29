@@ -5,6 +5,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import org.apache.http.HttpHost;
 import org.apache.http.auth.AuthScope;
@@ -19,7 +20,9 @@ import org.elasticsearch.action.get.GetResponse;
 import org.elasticsearch.action.index.IndexRequest;
 import org.elasticsearch.action.support.WriteRequest;
 import org.elasticsearch.action.support.WriteRequest.RefreshPolicy;
+import org.elasticsearch.action.update.UpdateAction;
 import org.elasticsearch.action.update.UpdateRequest;
+import org.elasticsearch.action.update.UpdateResponse;
 import org.elasticsearch.client.RequestOptions;
 import org.elasticsearch.client.RestClient;
 import org.elasticsearch.client.RestClientBuilder;
@@ -119,11 +122,14 @@ public class ElasticSearchConnect {
       indexRequest = new IndexRequest();
       indexRequest.index(index);
       indexRequest.source(objectMap, XContentType.JSON);
+
       bulkRequest.add(indexRequest);
+
     }
     System.out.println("es同步数据数量: " + bulkRequest.numberOfActions());
     // 设置索引刷新规则
     bulkRequest.setRefreshPolicy(RefreshPolicy.WAIT_UNTIL);
+    Set<String> indices = bulkRequest.getIndices();
     BulkResponse bulk = restHighLevelClient.bulk(bulkRequest, RequestOptions.DEFAULT);
     return bulk;
   }
@@ -198,6 +204,18 @@ public class ElasticSearchConnect {
     return bulkByScrollResponse;
   }
 
+
+  // 更新操作
+  public UpdateResponse update(String indexName,String id,Map<String,String> param)
+      throws IOException {
+    UpdateRequest updateRequest = new UpdateRequest(indexName,id);
+    IndexRequest indexRequest = new IndexRequest();
+    indexRequest.source(param);
+    updateRequest.doc(indexRequest);
+    UpdateResponse update = restHighLevelClient.update(updateRequest, RequestOptions.DEFAULT);
+    String id1 = update.getId();
+    return null;
+  }
 
 
 

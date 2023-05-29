@@ -24,6 +24,7 @@ import com.datapipeline.utils.ObjectConvert;
 import com.datapipeline.utils.ParameterTool;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -99,10 +100,14 @@ public class ElasticSearchTools {
     } else if (Objects.equals(executeMode, "delete")) {
       deleteByQuery(connect, parameterTool);
     } else {
-      System.out.println("当前模式不支持:" + executeMode + " ,请重新配置模式");
-      RestHighLevelClient restHighLevelClient = connect.getRestHighLevelClient();
-      ElasticSearchQuery query = new ElasticSearchQuery(restHighLevelClient);
-      query.getTaskDelayMonitorGraph(indexName);
+//      System.out.println("当前模式不支持:" + executeMode + " ,请重新配置模式");
+//      RestHighLevelClient restHighLevelClient = connect.getRestHighLevelClient();
+//      ElasticSearchQuery query = new ElasticSearchQuery(restHighLevelClient);
+//      query.getTaskDelayMonitorGraph(indexName);
+      HashMap<String, String> map = new HashMap<>();
+      map.put("state","iiiii");
+
+      connect.update(indexName,"1",map);
     }
   }
 
@@ -253,17 +258,19 @@ public class ElasticSearchTools {
   private static ErrorQueueRecord generateErrorQueueRecord(int recentlyMonth, int rangeIds) {
     Random rd = new Random();
     ErrorQueueRecord errorQueueRecord = new ErrorQueueRecord();
-    errorQueueRecord.setTaskId(rd.nextInt(rangeIds) + 1);
+//    errorQueueRecord.setTaskId(rd.nextInt(rangeIds) + 1);
+    errorQueueRecord.setTaskId(15);
     errorQueueRecord.setErrorRecordJson("RecordJson");
     errorQueueRecord.setErrorFieldName("ErrorFieldName");
-    errorQueueRecord.setActionHandleUuid("ActionHandleUuid");
+    errorQueueRecord.setOccurTime(System.currentTimeMillis());
+//    errorQueueRecord.setActionHandleUuid("ActionHandleUuid");
     StringBuilder stringBuilder = new StringBuilder();
     for (int i = 0; i < 227191; i++) {
       stringBuilder.append("hello" + i);
     }
     errorQueueRecord.setErrorRecordJson(stringBuilder.toString());
-    errorQueueRecord.setSrcEntityId(1);
-    errorQueueRecord.setSinkEntityId(10);
+    errorQueueRecord.setSrcEntityId(30109);
+    errorQueueRecord.setSinkEntityId(32596);
     int temp = rd.nextInt(10);
     if (temp == 0 || temp == 1) {
       errorQueueRecord.setErrorType(ErrorQueueType.NON_NULL_VIOLATION);
